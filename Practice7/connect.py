@@ -1,15 +1,23 @@
 import psycopg2
 from psycopg2 import Error
-import config
+from config import DB_CONFIG
+import os
 
 def get_connection():
     try:
-        conn = psycopg2.connect(**config.DB_CONFIG)
+        if os.getenv("DATABASE_URL"):
+            conn = psycopg2.connect(os.getenv("DATABASE_URL"))
+        else:
+            conn = psycopg2.connect(**DB_CONFIG)
         return conn
-    except Error as e:
-        print(f"Ошибка подключения к PostgreSQL: {e}")
+    except Exception as e:
+        print(f" Connection error: {e}")
         return None
 
+
 def close_connection(conn):
-    if conn:
-        conn.close()
+    if conn is not None:
+        try:
+            conn.close()
+        except Exception as e:
+            print(f" Error closing connection: {e}")
