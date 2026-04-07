@@ -23,7 +23,6 @@ BEGIN
 END;
 $$;
 
--- 3. Аты немесе телефоны бойынша өшіру
 CREATE OR REPLACE PROCEDURE delete_contact(p_search VARCHAR)
 LANGUAGE plpgsql AS $$
 BEGIN
