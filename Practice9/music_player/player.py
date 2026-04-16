@@ -45,6 +45,5 @@ class MusicPlayer:
         screen.blit(status_txt, (80, 240))
         screen.blit(progress, (80, 300))
 
-        # Подсказка по клавишам
         help_txt = self.small_font.render("P=Play  S=Stop  N=Next  B=Prev  Q=Quit", True, (180, 180, 180))
         screen.blit(help_txt, (90, 400))
