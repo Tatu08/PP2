@@ -1,49 +1,107 @@
 import pygame
+import os
+import time
+
 
 class MusicPlayer:
-    def __init__(self):
-        pygame.mixer.init()
-        self.tracks = ["music/track1.wav", "music/track2.wav"]
-        self.current = 0
-        self.playing = False
-        self.font = pygame.font.SysFont(None, 36)
-        self.small_font = pygame.font.SysFont(None, 28)
+    """
+    Manages playlist, playback state, and pygame.mixer interactions.
+    """
+
+    def __init__(self, music_dir: str = "music"):
+        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+
+        self.music_dir = music_dir
+        self.playlist: list[str] = []
+        self.track_names: list[str] = []
+        self.current_index: int = 0
+
+        self.is_playing: bool = False
+        self.play_start_time: float = 0.0
+        self.pause_offset: float = 0.0
+
+        self._load_playlist()
+
+    def _load_playlist(self):
+        if not os.path.isdir(self.music_dir):
+            return
+
+        supported = (".wav", ".mp3", ".ogg", ".flac", ".m4a")
+
+        files = sorted(
+            f for f in os.listdir(self.music_dir)
+            if f.lower().endswith(supported)
+        )
+
+        self.playlist = [os.path.join(self.music_dir, f) for f in files]
+        self.track_names = [os.path.splitext(f)[0] for f in files]
+
+    def has_tracks(self) -> bool:
+        return len(self.playlist) > 0
 
     def play(self):
-        if not self.playing:
-            pygame.mixer.music.load(self.tracks[self.current])
-            pygame.mixer.music.play()
-            self.playing = True
+        """Play or resume"""
+        if not self.has_tracks():
+            return
+
+        track = self.playlist[self.current_index]
+
+        try:
+            pygame.mixer.music.load(track)
+            pygame.mixer.music.play(start=self.pause_offset)
+        except Exception as e:
+            print("Error loading track:", e)
+            return
+
+        self.play_start_time = time.time() - self.pause_offset
+        self.is_playing = True
+
+    def pause(self):
+        """Pause and save position"""
+        if self.is_playing:
+            pygame.mixer.music.pause()
+            self.pause_offset = self.get_position()
+            self.is_playing = False
 
     def stop(self):
+        """Full stop (reset)"""
         pygame.mixer.music.stop()
-        self.playing = False
+        self.is_playing = False
+        self.play_start_time = 0.0
+        self.pause_offset = 0.0
 
     def next_track(self):
         self.stop()
-        self.current = (self.current + 1) % len(self.tracks)
+        self.current_index = (self.current_index + 1) % len(self.playlist)
         self.play()
 
-    def previous_track(self):
+    def prev_track(self):
         self.stop()
-        self.current = (self.current - 1) % len(self.tracks)
+        self.current_index = (self.current_index - 1) % len(self.playlist)
         self.play()
 
-    def draw(self, screen):
-        status = "▶ PLAYING" if self.playing else "⏹ STOPPED"
-        track_name = self.tracks[self.current].split("/")[-1]
 
-        title = self.font.render("Music Player", True, (100, 255, 255))
-        track = self.font.render(f"Track: {self.current + 1}/{len(self.tracks)} - {track_name}", True, (255, 255, 255))
-        status_txt = self.font.render(status, True, (0, 255, 100) if self.playing else (255, 80, 80))
+    def get_position(self) -> float:
+        if not self.is_playing:
+            return self.pause_offset
+        return time.time() - self.play_start_time
 
-        pos = pygame.mixer.music.get_pos() / 1000 if self.playing else 0
-        progress = self.small_font.render(f"Position: {pos:.1f} sec", True, (220, 220, 220))
+    def get_current_track_name(self) -> str:
+        if not self.has_tracks():
+            return "No tracks found"
+        return self.track_names[self.current_index]
 
-        screen.blit(title, (180, 80))
-        screen.blit(track, (80, 180))
-        screen.blit(status_txt, (80, 240))
-        screen.blit(progress, (80, 300))
+    def get_playlist_info(self) -> str:
+        if not self.has_tracks():
+            return "0 / 0"
+        return f"{self.current_index + 1} / {len(self.playlist)}"
 
-        help_txt = self.small_font.render("P=Play  S=Stop  N=Next  B=Prev  Q=Quit", True, (180, 180, 180))
-        screen.blit(help_txt, (90, 400))
+    def update(self):
+        if self.is_playing and not pygame.mixer.music.get_busy():
+            self.stop()
+            self.current_index = (self.current_index + 1) % len(self.playlist)
+            self.play()
+
+    def quit(self):
+        pygame.mixer.music.stop()
+        pygame.mixer.quit()
