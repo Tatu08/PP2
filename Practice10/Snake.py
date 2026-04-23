@@ -5,7 +5,6 @@ import time
 WIDTH, HEIGHT = 800, 600
 BLOCK_SIZE = 20
 
-# Түстер
 WHITE = (255, 255, 255)
 RED = (213, 50, 80)
 GREEN = (0, 255, 0)
