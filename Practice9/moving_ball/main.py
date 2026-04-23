@@ -69,7 +69,7 @@ def can_move_circle(new_x, new_y):
 
     for wall in walls:
         if rect.colliderect(wall):
-            return False
+            return True
 
     return True
 
